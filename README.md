@@ -88,6 +88,11 @@ Um sistema robusto e elegante de CRM (Customer Relationship Management) desenvol
    python manage.py migrate
    ```
 
+5. **Criar Administrador**
+   Para acessar o painel administrativo, crie seu usuário de acesso:
+   ```bash
+   python manage.py createsuperuser
+   ```
 
 6. **(Opcional) Popular com Dados de Exemplo**
    ```bash
