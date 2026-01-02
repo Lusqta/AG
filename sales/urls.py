@@ -13,6 +13,8 @@ urlpatterns = [
     path('customers/<int:pk>/delete/', views.customer_delete, name='customer_delete'),
     path('sales/new/', views.create_sale, name='create_sale'),
     path('sales/history/', views.sale_list, name='sale_list'),
+    path('sales/<int:pk>/edit/', views.edit_sale, name='edit_sale'),
+    path('sales/<int:pk>/delete/', views.delete_sale, name='delete_sale'),
     path('sales/export/', views.export_sales_report, name='export_sales_report'),
     
     # User Management

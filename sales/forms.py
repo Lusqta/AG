@@ -19,7 +19,15 @@ class SaleForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['vehicle'].queryset = Vehicle.objects.filter(status='available')
+        # Default: only available vehicles
+        qs = Vehicle.objects.filter(status='available')
+        
+        # If editing an existing sale, include the current vehicle so it shows up
+        if self.instance and self.instance.pk:
+            current_vehicle_qs = Vehicle.objects.filter(pk=self.instance.vehicle.pk)
+            qs = (qs | current_vehicle_qs).distinct()
+            
+        self.fields['vehicle'].queryset = qs
 
 # Admin Forms
 class UserForm(forms.ModelForm):

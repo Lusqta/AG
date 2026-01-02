@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.utils import timezone
 from .models import Vehicle, Customer, Sale
 from .forms import VehicleForm, CustomerForm, SaleForm, UserForm
+from django.db import transaction
 
 def is_manager_or_superuser(user):
     return user.is_superuser or user.groups.filter(name='Gerentes').exists()
@@ -204,6 +205,57 @@ def create_sale(request):
             initial['vehicle'] = vehicle_id
         form = SaleForm(initial=initial)
     return render(request, 'sales/sale_form.html', {'form': form, 'title': 'Registrar Venda', 'active_tab': 'sales'})
+
+@login_required
+def edit_sale(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+    old_vehicle = sale.vehicle # Capture old vehicle before form save potentially changes it in memory
+    
+    if request.method == 'POST':
+        form = SaleForm(request.POST, instance=sale)
+        if form.is_valid():
+            with transaction.atomic():
+                new_sale = form.save(commit=False)
+                
+                # If vehicle changed, revert the old one
+                if new_sale.vehicle != old_vehicle:
+                    old_vehicle.status = 'available'
+                    old_vehicle.save()
+                    
+                    # The new vehicle status will be set to 'sold' by the Sale.save() method automatically
+                    
+                new_sale.save()
+                messages.success(request, 'Venda atualizada com sucesso!')
+                return redirect('sale_list')
+    else:
+        form = SaleForm(instance=sale)
+    
+    return render(request, 'sales/sale_form.html', {
+        'form': form, 
+        'title': f'Editar Venda #{sale.id}', 
+        'active_tab': 'sales'
+    })
+
+@login_required
+def delete_sale(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+    
+    if request.method == 'POST':
+        with transaction.atomic():
+            # Revert vehicle status to available
+            sale.vehicle.status = 'available'
+            sale.vehicle.save()
+            
+            # We do NOT revert customer status automatically as they might have other purchases
+            
+            sale.delete()
+            messages.success(request, 'Venda excluída e veículo retornado ao estoque.')
+            return redirect('sale_list')
+    
+    return render(request, 'sales/confirm_delete.html', {
+        'obj': sale, 
+        'title': 'Excluir Venda'
+    })
 
 @login_required
 @login_required
