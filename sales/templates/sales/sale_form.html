@@ -1,0 +1,52 @@
+{% extends 'sales/base.html' %}
+{% load static %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="header">
+        <h2 style="font-size: 1.75rem; font-weight: 700;">{{ title }}</h2>
+    </div>
+
+    <div class="card">
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Custom Field Rendering for Sale Form to include Add Customer Button -->
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+
+                {% if field.name == 'customer' %}
+                <div style="display: flex; gap: 0.5rem;">
+                    {{ field }}
+                    <a href="{% url 'add_customer' %}?next={% url 'create_sale' %}" class="btn btn-primary"
+                        style="white-space: nowrap; padding: 0.75rem;">
+                        <i class="fas fa-plus"></i> Novo
+                    </a>
+                </div>
+                {% else %}
+                {{ field }}
+                {% endif %}
+
+                {% if field.errors %}
+                <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                    {{ field.errors }}
+                </div>
+                {% endif %}
+                {% if field.help_text %}
+                <div style="color: #94a3b8; font-size: 0.875rem; margin-top: 0.25rem;">
+                    {{ field.help_text }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Venda</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary"
+                    style="flex: 1; text-align: center;">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

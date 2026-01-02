@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prestige Auto CRM</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h1>PRESTIGE<span style="color:var(--accent-color)">AUTO</span></h1>
+            <ul class="nav-links">
+                <li>
+                    <a href="{% url 'dashboard' %}" class="{% if active_tab == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-home" style="width: 24px;"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'vehicle_list' %}" class="{% if active_tab == 'vehicles' %}active{% endif %}">
+                        <i class="fas fa-car" style="width: 24px;"></i> Inventário
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'customer_list' %}" class="{% if active_tab == 'customers' %}active{% endif %}">
+                        <i class="fas fa-users" style="width: 24px;"></i> Clientes
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'create_sale' %}" class="{% if active_tab == 'sales' %}active{% endif %}">
+                        <i class="fas fa-search-dollar" style="width: 24px;"></i> Nova Venda
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'sale_list' %}" class="{% if active_tab == 'sales_history' %}active{% endif %}">
+                        <i class="fas fa-history" style="width: 24px;"></i> Histórico de Vendas
+                    </a>
+                </li>
+                {% if request.user.is_superuser or "Gerentes" in request.user.groups.all.0.name %}
+                <!-- Or use a custom template tag/filter, but for simplicity relying on python property if possible -> user.groups.all check in template is tricky. 
+                    Better to just check permissions or pass a flag in context context_processor.
+                    Simpler check: if user.is_staff or user.is_superuser -->
+                <li style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 1rem; padding-top: 1rem;">
+                    <a href="{% url 'user_list' %}" class="{% if active_tab == 'users' %}active{% endif %}">
+                        <i class="fas fa-user-shield" style="width: 24px;"></i> Usuários
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+
+            <div style="margin-top: auto; padding-top: 2rem;">
+                <div
+                    style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.25rem;">Logado como</div>
+                    <div style="font-weight: 600; color: white;">{{ user.username }}</div>
+                    {% if user.groups.all %}
+                    <div style="font-size: 0.75rem; color: var(--accent-color);">{{ user.groups.all.0.name }}</div>
+                    {% endif %}
+                </div>
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit"
+                        style="width: 100%; text-align: left; background: none; border: none; color: #ef4444; font-size: 0.95rem; font-weight: 500; cursor: pointer; padding: 0.5rem; display: flex; align-items: center; justify-content: flex-start; gap: 0.5rem;">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </form>
+            </div>
+            <div style="margin-top: 1rem; color: #64748b; font-size: 0.75rem; text-align: center;">
+                &copy; 2024 Prestige Auto
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,473 @@
+{% extends 'sales/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="header">
+    <h2 style="font-size: 1.75rem; font-weight: 700;">Visão Geral</h2>
+    <div>
+        <button type="button" onclick="openExportModal()" class="btn btn-secondary"
+            style="margin-right: 0.5rem; font-family: inherit;"><i class="fas fa-file-excel"></i> Baixar
+            Relatório</button>
+        <a href="{% url 'create_sale' %}" class="btn btn-primary">+ Nova Venda</a>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">R$ {{ total_sales|floatformat:2 }}</div>
+        <div class="stat-label">Receita Total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: var(--success-color);">{{ vehicles_sold }}</div>
+        <div class="stat-label">Veículos Vendidos</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: var(--secondary-color);">{{ vehicles_available }}</div>
+        <div class="stat-label">Em Estoque</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: var(--accent-color);">{{ active_leads }}</div>
+        <div class="stat-label">Leads Ativos</div>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<!-- Charts Grid -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
+    <!-- Chart 1: Revenue -->
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: #475569;">Evolução do Faturamento</h3>
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Chart 2: Sales by Make -->
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: #475569;">Vendas por Marca (Top 5)</h3>
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="makeChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: #475569;">Ranking de Vendas por Vendedor</h3>
+    <div style="position: relative; height: 300px; width: 100%;">
+        <canvas id="personChart"></canvas>
+    </div>
+</div>
+
+<!-- Recent Sales -->
+<div class="card">
+    <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Vendas Recentes</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Veículo</th>
+                    <th>Cliente</th>
+                    <th>Preço</th>
+                    <th>Data</th>
+                    <th>Vendedor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in recent_sales %}
+                <tr>
+                    <td>{{ sale.vehicle }}</td>
+                    <td>{{ sale.customer }}</td>
+                    <td style="font-weight: 600;">R$ {{ sale.sale_price }}</td>
+                    <td>{{ sale.sale_date|date:"d/m/Y" }}</td>
+                    <td>{{ sale.salesperson.get_full_name|default:sale.salesperson.username }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 2rem;">Nenhuma venda recente encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Common Options
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.color = '#64748b';
+
+    // Data from Django
+    const revLabels = JSON.parse('{{ rev_labels|safe }}');
+    const revData = JSON.parse('{{ rev_data|safe }}');
+
+    const makeLabels = JSON.parse('{{ make_labels|safe }}');
+    const makeData = JSON.parse('{{ make_data|safe }}');
+
+    const personLabels = JSON.parse('{{ person_labels|safe }}');
+    const personData = JSON.parse('{{ person_data|safe }}');
+
+    // Gradient for Line Chart
+    const ctxRev = document.getElementById('revenueChart').getContext('2d');
+    const gradientRev = ctxRev.createLinearGradient(0, 0, 0, 400);
+    gradientRev.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+    gradientRev.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+    // 1. Revenue Chart
+    new Chart(ctxRev, {
+        type: 'line',
+        data: {
+            labels: revLabels,
+            datasets: [{
+                label: 'Faturamento',
+                data: revData,
+                borderColor: '#3b82f6',
+                backgroundColor: gradientRev,
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#3b82f6',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    titleFont: { size: 13 },
+                    bodyFont: { size: 14, weight: 'bold' },
+                    callbacks: {
+                        label: function (context) {
+                            let value = context.parsed.y;
+                            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9', drawBorder: false },
+                    ticks: {
+                        callback: function (value) {
+                            if (value >= 1000) return 'R$ ' + value / 1000 + 'k';
+                            return 'R$ ' + value;
+                        }
+                    }
+                },
+                x: {
+                    grid: { display: false, drawBorder: false }
+                }
+            }
+        }
+    });
+
+    // 2. Make Chart (Doughnut)
+    new Chart(document.getElementById('makeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: makeLabels,
+            datasets: [{
+                data: makeData,
+                backgroundColor: ['#3b82f6', '#f59e0b', '#0f172a', '#10b981', '#64748b'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { usePointStyle: true, boxWidth: 8, padding: 20 }
+                }
+            }
+        }
+    });
+
+    // 3. Salesperson Chart (Bar)
+    new Chart(document.getElementById('personChart'), {
+        type: 'bar',
+        data: {
+            labels: personLabels,
+            datasets: [{
+                label: 'Vendas Totais',
+                data: personData,
+                backgroundColor: '#10b981',
+                borderRadius: 4,
+                barThickness: 30
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.x);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9', drawBorder: false },
+                    ticks: {
+                        callback: function (value) {
+                            if (value >= 1000) return 'R$ ' + value / 1000 + 'k';
+                            return value;
+                        }
+                    }
+                },
+                y: {
+                    grid: { display: false, drawBorder: false }
+                }
+            }
+        }
+    });
+</script>
+
+<!-- Export Modal -->
+<div id="exportModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Exportar Relatório</h3>
+            <button type="button" class="close-btn" onclick="closeExportModal()">&times;</button>
+        </div>
+
+        <form action="{% url 'export_sales_report' %}" method="get">
+            <div class="form-group">
+                <label class="section-label">Tipo de Relatório</label>
+                <div class="export-options">
+                    <label class="export-option">
+                        <input type="radio" name="type" value="complete" checked>
+                        <div class="option-card">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Completo</span>
+                            <small>Gráficos, KPIs e Lista Detalhada</small>
+                        </div>
+                    </label>
+                    <label class="export-option">
+                        <input type="radio" name="type" value="simple">
+                        <div class="option-card">
+                            <i class="fas fa-table"></i>
+                            <span>Planilha</span>
+                            <small>Apenas dados brutos em tabela</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="section-label" for="month-select">Período</label>
+                <select name="month" id="month-select" class="styled-select">
+                    <option value="all">Todos os tempos (Geral)</option>
+                    {% for date in available_months %}
+                    <option value="{{ date|date:'Y-m' }}">{{ date|date:'F Y'|capfirst }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeExportModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary" onclick="closeExportModal()">
+                    <i class="fas fa-download"></i> Baixar Relatório
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Styles -->
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-content {
+        transform: translateY(0);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #1e293b;
+        font-size: 1.5rem;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #64748b;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .section-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: #334155;
+        font-size: 0.95rem;
+    }
+
+    .export-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .export-option input {
+        display: none;
+    }
+
+    .option-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .export-option input:checked+.option-card {
+        border-color: var(--primary-color, #2563eb);
+        background-color: #eff6ff;
+        color: var(--primary-color, #2563eb);
+    }
+
+    .option-card i {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .option-card span {
+        font-weight: 600;
+        display: block;
+    }
+
+    .option-card small {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    .styled-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background-color: white;
+        font-size: 1rem;
+        color: #1e293b;
+        margin-bottom: 2rem;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+        background: #e2e8f0;
+    }
+</style>
+
+<script>
+    function openExportModal() {
+        const modal = document.getElementById('exportModal');
+        modal.style.display = 'flex';
+        // Force reflow
+        modal.offsetHeight;
+        modal.classList.add('active');
+    }
+
+    function closeExportModal() {
+        const modal = document.getElementById('exportModal');
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+
+    // Close on click outside
+    document.getElementById('exportModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeExportModal();
+        }
+    });
+</script>
+{% endblock %}

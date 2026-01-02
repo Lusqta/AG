@@ -1,0 +1,59 @@
+{% extends 'sales/base.html' %}
+
+{% block content %}
+<div class="header">
+    <h2 style="font-size: 1.75rem; font-weight: 700;">{{ users.count }} Usuários Cadastrados</h2>
+    <a href="{% url 'user_add' %}" class="btn btn-primary">+ Adicionar Usuário</a>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Função</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td style="font-weight: 600;">{{ u.username }}</td>
+                    <td>{{ u.get_full_name }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        {% for group in u.groups.all %}
+                        <span class="badge" style="background-color: #f1f5f9; color: #475569;">{{ group.name }}</span>
+                        {% empty %}
+                        {% if u.is_superuser %}
+                        <span class="badge" style="background-color: #fef3c7; color: #92400e;">Admin</span>
+                        {% else %}
+                        <span class="badge">-</span>
+                        {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% if not u.is_superuser %}
+                        <a href="{% url 'user_edit' u.pk %}" class="btn btn-primary"
+                            style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.5rem;">Editar</a>
+                        {% endif %}
+
+                        {% if request.user.is_superuser and not u.is_superuser %}
+                        <a href="{% url 'user_delete' u.pk %}" class="btn"
+                            style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background-color: #fee2e2; color: #991b1b;">Apagar</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 2rem;">Nenhum usuário cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

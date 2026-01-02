@@ -1,0 +1,79 @@
+{% extends 'sales/base.html' %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="header">
+        <h2 style="font-size: 1.75rem; font-weight: 700;">{{ title }}</h2>
+    </div>
+
+    <div class="card">
+        <form method="post" enctype="multipart/form-data" id="mainForm">
+            {% csrf_token %}
+            {% if next_url %}
+            <input type="hidden" name="next" value="{{ next_url }}">
+            {% endif %}
+
+            {% if title == 'Adicionar Veículo' %}
+            <div class="form-group">
+                <label>Origem da Imagem</label>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="img_source" value="upload" checked
+                            onclick="toggleImageSource('upload')"> Upload de Arquivo
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="img_source" value="url" onclick="toggleImageSource('url')"> URL /
+                        Base64
+                    </label>
+                </div>
+            </div>
+            {% endif %}
+
+            {% for field in form %}
+            <div class="form-group" id="group-{{ field.name }}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
+                    {{ field.errors }}
+                </div>
+                {% endif %}
+                {% if field.help_text %}
+                <div style="color: #94a3b8; font-size: 0.875rem; margin-top: 0.25rem;" class="help-text">
+                    {{ field.help_text }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>
+                <a href="javascript:history.back()" class="btn btn-secondary"
+                    style="flex: 1; text-align: center;">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleImageSource(source) {
+        const uploadGroup = document.getElementById('group-image');
+        const urlGroup = document.getElementById('group-image_url');
+
+        if (source === 'upload') {
+            uploadGroup.style.display = 'block';
+            urlGroup.style.display = 'none';
+            document.querySelector('[name="image_url"]').value = '';
+        } else {
+            uploadGroup.style.display = 'none';
+            urlGroup.style.display = 'block';
+            document.querySelector('[name="image"]').value = '';
+        }
+    }
+
+    // Initial state for Vehicle form
+    if (document.getElementById('group-image') && document.getElementById('group-image_url')) {
+        toggleImageSource('upload');
+    }
+</script>
+{% endblock %}
