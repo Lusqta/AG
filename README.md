@@ -65,7 +65,7 @@ Um sistema robusto e elegante de CRM (Customer Relationship Management) desenvol
 
 1. **Clonar o Repositório**
    ```bash
-   git clone https://github.com/seu-usuario/dealership-crm.git
+   git clone https://github.com/Lusqta/AG.git
    cd dealership-crm
    ```
 
@@ -116,15 +116,3 @@ Um sistema robusto e elegante de CRM (Customer Relationship Management) desenvol
 - `templates/`: Arquivos HTML do sistema.
 - `scripts/`: Scripts utilitários para manutenção de dados.
 
----
-
-## 🎨 Interface
-*Adicione aqui screenshots do seu sistema para impressionar no GitHub!*
-
----
-
-## 📝 Licença
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
----
-🚀 Desenvolvido com ❤️ por [Seu Nome](https://github.com/seu-usuario)
