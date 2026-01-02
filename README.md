@@ -88,12 +88,6 @@ Um sistema robusto e elegante de CRM (Customer Relationship Management) desenvol
    python manage.py migrate
    ```
 
-5. **Acesso Administrador**
-   O sistema possui um usuário mestre pré-configurado:
-   - **Usuário:** `admin`
-   - **Senha:** `admin123`
-   
-   > **Segurança:** Recomenda-se alterar esta senha após o primeiro login através do painel administrativo.
 
 6. **(Opcional) Popular com Dados de Exemplo**
    ```bash
