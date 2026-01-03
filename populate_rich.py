@@ -17,16 +17,26 @@ def populate_rich():
     admin = User.objects.get(username='admin')
     
     # Get or Create Salespeople
+    sales_names = [
+        ('vendedor1', 'Carlos', 'Silva'),
+        ('vendedor2', 'Ana', 'Souza'),
+        ('vendedor3', 'Roberto', 'Mendes'),
+        ('vendedor4', 'Fernanda', 'Lima'),
+    ]
+    
     salespeople = []
-    for i in range(1, 4):
-        u, _ = User.objects.get_or_create(username=f'vendedor{i}')
-        if _:
+    for username, first, last in sales_names:
+        u, created = User.objects.get_or_create(username=username)
+        if created:
             u.set_password('123456')
-            u.first_name = 'João'
-            u.last_name = f'Vendedor {i}'
-            u.save()
-            group = Group.objects.get(name='Vendedores')
-            u.groups.add(group)
+        
+        # Always update names to fix previous "João" issue
+        u.first_name = first
+        u.last_name = last
+        u.save()
+            
+        group, _ = Group.objects.get_or_create(name='Vendedores')
+        u.groups.add(group)
         salespeople.append(u)
     
     # Makes and Models

@@ -41,7 +41,8 @@
                     <span class="badge badge-{{ vehicle.status }}">{{ vehicle.get_status_display }}</span>
                     <span style="font-weight: 700; font-size: 1.1rem;">R$ {{ vehicle.price }}</span>
                 </div>
-                <h3 style="font-size: 1.25rem; margin-bottom: 0.25rem;">{{ vehicle.year }} {{ vehicle.make }} {{ vehicle.model }}</h3>
+                <h3 style="font-size: 1.25rem; margin-bottom: 0.25rem;">{{ vehicle.year }} {{ vehicle.make }} {{
+                    vehicle.model }}</h3>
                 <p style="color: #64748b; font-size: 0.9rem;">{{ vehicle.mileage }} km • {{ vehicle.color }}</p>
             </div>
 
@@ -53,9 +54,11 @@
                 {% endif %}
                 <a href="{% url 'edit_vehicle' vehicle.id %}" class="btn btn-secondary"
                     style="flex: 1; text-align: center; padding: 0.5rem;" title="Editar"><i class="fas fa-edit"></i></a>
+                {% if can_delete %}
                 <a href="{% url 'delete_vehicle' vehicle.id %}" class="btn"
                     style="flex: 1; text-align: center; padding: 0.5rem; background-color: #fee2e2; color: #991b1b;"
                     title="Excluir"><i class="fas fa-trash"></i></a>
+                {% endif %}
             </div>
         </div>
         {% empty %}

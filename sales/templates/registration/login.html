@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Prestige Auto CRM</title>
+    <title>Entrar - Prestige Auto CRM</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -47,7 +47,7 @@
     <div class="login-card">
         <div class="login-header">
             <h1>PRESTIGE<span style="color:var(--accent-color)">AUTO</span></h1>
-            <p>Welcome back! Please login.</p>
+            <p>Bem-vindo! Faça seu login.</p>
         </div>
 
         <form method="post">
@@ -55,23 +55,23 @@
             {% if form.errors %}
             <div
                 style="background-color: #fef2f2; color: #b91c1c; padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #fca5a5; font-size: 0.9rem;">
-                <i class="fas fa-exclamation-circle"></i> Invalid username or password.
+                <i class="fas fa-exclamation-circle"></i> Usuário ou senha inválidos.
             </div>
             {% endif %}
 
             <div class="form-group">
-                <label for="id_username">Username</label>
+                <label for="id_username">Usuário</label>
                 <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username"
                     maxlength="150" required id="id_username">
             </div>
 
             <div class="form-group">
-                <label for="id_password">Password</label>
+                <label for="id_password">Senha</label>
                 <input type="password" name="password" autocomplete="current-password" required id="id_password">
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 1rem;">
-                Sign In
+                Entrar
             </button>
         </form>
     </div>

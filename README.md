@@ -5,112 +5,86 @@
 ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white)
 
-Um sistema robusto e elegante de CRM (Customer Relationship Management) desenvolvido especialmente para concessionárias de veículos. O **Dealership CRM** permite gerenciar o inventário de veículos, acompanhar o funil de vendas de clientes e registrar transações de forma eficiente.
+O **Dealership CRM** é uma solução completa para gestão de concessionárias, focada em simplicidade e controle.
 
 ---
 
-## ✨ Funcionalidades Principais
+## ✨ Funcionalidades Comprovadas
 
-### � Painel de Controle (Dashboard)
-- **KPIs em Tempo Real:** Acompanhe métricas vitais como Vendas Totais, Veículos Vendidos, Estoque Disponível e Leads Ativos.
-- **Gráficos Interativos:** Visualização clara da Evolução Financeira, Vendas por Marca e Ranking de Vendedores.
-- **Últimas Vendas:** Tabela de acesso rápido às transações mais recentes.
+### 📊 Painel de Controle (Dashboard)
+- **KPIs em Tempo Real:** Faturamento, Veículos Vendidos, Veículos Disponíveis e Leads.
+- **Gráficos Interativos:** Evolução de Vendas (Mensal), Vendas por Marca e Top Vendedores.
+- **Tabela Recente:** Visualização rápida das últimas 5 vendas.
 
 ### 🚘 Gestão de Veículos (Inventário)
-- **Cadastro Completo:** Registro de Marca, Modelo, Ano, Preço, VIN, Quilometragem e Cor.
-- **Gestão de Imagens:** Suporte flexível para upload de fotos ou uso de URLs externas.
-- **Busca Avançada:** Filtre rapidamente o estoque por qualquer característica do veículo.
-- **Proteção de Estoque:** O sistema impede acidentalmente a exclusão de veículos que já constam como vendidos.
+- **Cadastro Completo:** Marca, modelo, ano, preço, VIN, cor, quilometragem e descrição.
+- **Imagens:** Upload de arquivo ou URL externa.
+- **Busca:** Pesquisa por Marca, Modelo ou VIN.
+- **Status Automático:** *Disponível, Vendido, Em Manutenção*.
+- **Controle de Exclusão:** Apenas **Gerentes** podem excluir veículos (e apenas se não estiverem vendidos).
 
-### � Gestão de Clientes (CRM)
-- **Funil de Vendas:** Acompanhe a jornada do cliente (Lead -> Contatado -> Interessado -> Comprou).
-- **Atribuição Inteligente:** Novos clientes são automaticamente vinculados ao vendedor que os cadastrou.
-- **Histórico Integrado:** Visualize todas as compras anteriores diretamente no perfil do cliente.
+### 👥 Gestão de Clientes
+- **Cadastro:** Registro rápido de novos clientes com atribuição automática ao vendedor.
+- **Listagem e Busca:** Filtre por nome, e-mail ou telefone.
+- **Detalhes:** Visualize informações de contato e histórico completo de compras do cliente.
+- **Exclusão:** Apenas **Gerentes** podem excluir clientes (protegido se houver vendas vinculadas).
+- **Nota:** Edição de clientes disponível via painel Admin.
 
-### 💰 Gestão de Vendas & Automação
-- **Fluxo Automatizado:** Ao registrar uma venda, o sistema automaticamente:
-  1. Marca o veículo como "Vendido".
-  2. Atualiza o status do cliente para "Comprou".
-  3. Registra a data e valor da transação.
-- **Filtros Poderosos:** Encontre vendas passadas por Data, Vendedor, Cliente ou Carro.
+### 💰 Gestão de Vendas
+- **Fluxo Automatizado:** Registrar uma venda automaticamente marca o veículo como "Vendido" e o cliente como "Comprou".
+- **Histórico:** Lista completa com filtros por Data, Vendedor e Pesquisa textual.
+- **Edição Inteligente:** Se você alterar o veículo de uma venda, o sistema reverte o status do veículo anterior para "Disponível" automaticamente.
+- **Cancelamento:** Apenas **Gerentes** podem excluir vendas (o veículo volta automaticamente para o estoque).
 
-### 📊 Relatórios & Exportação
-- **Excel Profissional:** Gerador de relatórios em `.xlsx` utilizando `xlsxwriter`.
-- **Modos de Exportação:**
-  - **Simples:** Lista tabular perfeita para conferência rápida.
-  - **Executivo:** Planilha completa com Dashboard, Gráficos nativos do Excel e abas separadas de dados.
-  
-### 🛡️ Administração e Segurança
-- **Controle de Acesso:** Permissões granulares para Gerentes (acesso total) e Vendedores.
-- **Proteção de Dados:** Travas de segurança impedem a exclusão de usuários ou clientes que possuem registros financeiros vinculados.
+### 📈 Relatórios (Excel)
+- **Exportação Flexível:** Gere planilhas Excel `.xlsx`.
+- **Modos:**
+    - *Relatório Simples:* Lista de dados.
+    - *Relatório Executivo:* Inclui Dashboard, KPIs e Gráficos dentro do Excel.
+
+### 🛡️ Gestão de Usuários e Permissões
+O sistema possui 3 níveis de acesso bem definidos:
+
+1.  **Vendedor (Padrão):**
+    - Pode cadastrar Clientes e Veículos.
+    - Pode registrar Vendas.
+    - **NÃO PODE** excluir registros.
+    - **NÃO PODE** acessar gestão de usuários.
+
+2.  **Gerente (Grupo "Gerentes"):**
+    - Tudo o que o Vendedor faz.
+    - **Pode EXCLUIR** Veículos, Clientes e Vendas.
+    - **Pode CRIAR e EDITAR** outros usuários (Vendedores/Gerentes).
+    - *Nota: Gerentes não podem excluir usuários (apenas Admin).*
+
+3.  **Administrador (Superuser):**
+    - Acesso total ao sistema e ao painel `/admin` do Django.
+    - Único capaz de **Excluir Usuários**.
 
 ---
 
-## 🚀 Tecnologias Utilizadas
-
-- **Framework:** [Django 5.0+](https://www.djangoproject.com/)
-- **Linguagem:** [Python](https://www.python.org/)
-- **Banco de Dados:** SQLite (Desenvolvimento)
-- **Exportação:** [XlsxWriter](https://xlsxwriter.readthedocs.io/)
-- **Frontend:** HTML5, CSS3, JavaScript e Bootstrap.
-
----
-
-## 🛠️ Como Instalar e Rodar
+## 🚀 Como Executar
 
 ### Pré-requisitos
-- Python 3.10 ou superior instalada.
+- Python instalado.
+- Dependências instaladas (`pip install -r requirements.txt`).
 
-### Passo a Passo
-
-1. **Clonar o Repositório**
-   ```bash
-   git clone https://github.com/Lusqta/AG.git
-   cd dealership-crm
-   ```
-
-2. **Criar Ambiente Virtual (Recomendado)**
-   ```bash
-   python -m venv venv
-   # No Windows:
-   .\venv\Scripts\activate
-   # No Linux/Mac:
-   source venv/bin/activate
-   ```
-
-3. **Instalar Dependências**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configurar o Banco de Dados**
-   ```bash
-   python manage.py migrate
-   ```
-
-5. **Acesso Administrador**
-   O sistema possui um usuário mestre pré-configurado:
-   - **Usuário:** `admin`
-   - **Senha:** `admin123`
-
-6. **(Opcional) Popular com Dados de Exemplo**
-   ```bash
-   python populate_data.py
-   ```
-
-7. **Iniciar o Servidor**
+### Iniciando o Servidor
+1. Execute o script **`start.bat`** (Windows).
+2. Ou use o comando:
    ```bash
    python manage.py runserver
    ```
-   Acesse o sistema em: `http://127.0.0.1:8000`
+3. Acesse: `http://127.0.0.1:8000`
+
+### Credenciais Iniciais
+- **Admin:** `admin` / `admin1234`
 
 ---
 
-## 📁 Estrutura do Projeto
-
-- `dealership_crm/`: Configurações centrais do Django.
-- `sales/`: Aplicativo principal (Modelos de Vendas, Veículos e Clientes).
-- `static/`: Arquivos estáticos (CSS, JS, Imagens).
-- `templates/`: Arquivos HTML do sistema.
-- `scripts/`: Scripts utilitários para manutenção de dados.
-
+## 🛠️ Tecnologias
+- **Backend:** Django 5
+- **Banco:** SQLite3
+- **Frontend:** Bootstrap 5 + FontAwesome
+- **Gráficos:** Chart.js
+- **Exportação:** XlsxWriter

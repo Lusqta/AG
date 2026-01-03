@@ -18,7 +18,7 @@ def is_superuser(user):
 
 from django.db.models.functions import TruncMonth
 import json
-from django.core.serializers.json import DjangoJSONEncoder
+
 
 @login_required
 def dashboard(request):
@@ -83,14 +83,15 @@ def vehicle_list(request):
             Q(vin__icontains=query)
         )
 
-    paginator = Paginator(vehicles_list, 10)  # Show 10 vehicles per page.
+    paginator = Paginator(vehicles_list, 9)  # Show 9 vehicles per page (3x3 grid).
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'sales/vehicle_list.html', {
         'vehicles': page_obj, 
         'active_tab': 'vehicles',
-        'query': query
+        'query': query,
+        'can_delete': is_manager_or_superuser(request.user)
     })
 
 @login_required
@@ -119,6 +120,7 @@ def edit_vehicle(request, pk):
     return render(request, 'sales/form.html', {'form': form, 'title': f'Editar {vehicle}', 'active_tab': 'vehicles'})
 
 @login_required
+@user_passes_test(is_manager_or_superuser)
 def delete_vehicle(request, pk):
     vehicle = get_object_or_404(Vehicle, pk=pk)
     if vehicle.status == 'sold':
@@ -144,14 +146,15 @@ def customer_list(request):
             Q(phone__icontains=query)
         )
 
-    paginator = Paginator(customers_list, 10)
+    paginator = Paginator(customers_list, 12)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'sales/customer_list.html', {
         'customers': page_obj, 
         'active_tab': 'customers',
-        'query': query
+        'query': query,
+        'can_delete': is_manager_or_superuser(request.user)
     })
 
 @login_required
@@ -237,6 +240,7 @@ def edit_sale(request, pk):
     })
 
 @login_required
+@user_passes_test(is_manager_or_superuser)
 def delete_sale(request, pk):
     sale = get_object_or_404(Sale, pk=pk)
     
@@ -289,7 +293,7 @@ def sale_list(request):
     # Get available months for export
     available_months = Sale.objects.dates('sale_date', 'month', order='DESC')
 
-    paginator = Paginator(sales, 10)
+    paginator = Paginator(sales, 12)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -298,11 +302,11 @@ def sale_list(request):
         'active_tab': 'sales_history',
         'users': users,
         'available_months': available_months,
-        # Preserve filter values
         'search_query': search_query,
         'date_min': date_min,
         'date_max': date_max,
-        'selected_salesperson': int(salesperson_id) if salesperson_id else ''
+        'selected_salesperson': int(salesperson_id) if salesperson_id else '',
+        'can_delete': is_manager_or_superuser(request.user)
     }
     return render(request, 'sales/sale_list.html', context)
 
@@ -350,7 +354,7 @@ def user_edit(request, pk):
         form = UserForm(instance=user, initial=initial)
     return render(request, 'sales/form.html', {'form': form, 'title': f'Editar {user.username}', 'active_tab': 'users'})
 
-from django.db.models import ProtectedError
+
 
 @login_required
 @user_passes_test(is_superuser)
@@ -394,18 +398,37 @@ from io import BytesIO
 
 @login_required
 def export_sales_report(request):
-    export_type = request.GET.get('type', 'complete')  # 'complete' or 'simple'
-    month_str = request.GET.get('month', 'all')        # 'all' or 'YYYY-MM'
-
+    export_type = request.GET.get('type', 'complete')
+    # Get list of selected months (format: 'YYYY-MM')
+    month_list = request.GET.getlist('month')
+    
     # Filter Data
     sales_qs = Sale.objects.select_related('vehicle', 'customer', 'salesperson').all().order_by('-sale_date')
     
-    if month_str != 'all':
-        try:
-            year, month = map(int, month_str.split('-'))
-            sales_qs = sales_qs.filter(sale_date__year=year, sale_date__month=month)
-        except ValueError:
-            pass # Fallback to all if format is wrong
+    selected_months_str = "Geral"
+    
+    # Filter logic: If 'all' is not present and list is not empty, filter by selected months
+    if month_list and 'all' not in month_list:
+        from django.db.models import Q
+        date_filters = Q()
+        valid_months = []
+        
+        for m_str in month_list:
+            try:
+                year, month = map(int, m_str.split('-'))
+                date_filters |= Q(sale_date__year=year, sale_date__month=month)
+                valid_months.append(m_str)
+            except ValueError:
+                continue
+                
+        if date_filters:
+            sales_qs = sales_qs.filter(date_filters)
+            
+            # Format filename string
+            if len(valid_months) == 1:
+                selected_months_str = valid_months[0]
+            else:
+                selected_months_str = f"Multiplo_{len(valid_months)}Meses"
 
     # Create an in-memory output file for the new workbook.
     output = BytesIO()
@@ -523,7 +546,7 @@ def export_sales_report(request):
         subtitle_fmt = workbook.add_format({'font_size': 12, 'italic': True, 'color': '#6B7280'})
         
         ws_dash.write('B2', 'Relatório Executivo de Vendas', title_fmt)
-        ws_dash.write('B3', f'Período: {"Geral" if month_str == "all" else month_str}', subtitle_fmt)
+        ws_dash.write('B3', f'Período: {selected_months_str}', subtitle_fmt)
         
         # KPIs Logic
         total_rev = sales_qs.aggregate(Sum('sale_price'))['sale_price__sum'] or 0
@@ -551,8 +574,8 @@ def export_sales_report(request):
         ws_data.hide()
         
         # Chart Data: Daily/Monthly Sales (depending on filter)
-        # Se for mês específico, agrupa por dia. Se for geral, por mês.
-        if month_str == 'all':
+        # Se for 1 mês específico, agrupa por dia. Se for geral ou múltiplos, por mês.
+        if len(month_list) == 1 and 'all' not in month_list:
             trunc_func = TruncMonth('sale_date')
             date_format = '%b/%Y'
             chart_xlabel = 'Mês'
@@ -618,7 +641,7 @@ def export_sales_report(request):
     workbook.close()
     output.seek(0)
     
-    filename = f"Relatorio_Vendas_{month_str}.xlsx"
+    filename = f"Relatorio_Vendas_{selected_months_str}.xlsx"
     response = HttpResponse(
         output,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
