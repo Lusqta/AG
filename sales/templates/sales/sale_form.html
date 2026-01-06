@@ -14,32 +14,150 @@
             <!-- Custom Field Rendering for Sale Form to include Add Customer Button -->
             {% for field in form %}
             <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                <label for="{{field.id_for_label}}">{{field.label}}</label>
 
                 {% if field.name == 'customer' %}
                 <div style="display: flex; gap: 0.5rem;">
-                    {{ field }}
-                    <a href="{% url 'add_customer' %}?next={% url 'create_sale' %}" class="btn btn-primary"
+                    {{field}}
+                    <a href="{%url 'add_customer' %}?next={%url 'create_sale' %}" class="btn btn-primary"
                         style="white-space: nowrap; padding: 0.75rem;">
                         <i class="fas fa-plus"></i> Novo
                     </a>
                 </div>
                 {% else %}
-                {{ field }}
+                {{field}}
                 {% endif %}
 
                 {% if field.errors %}
                 <div style="color: var(--danger-color); font-size: 0.875rem; margin-top: 0.25rem;">
-                    {{ field.errors }}
+                    {{field.errors}}
                 </div>
                 {% endif %}
                 {% if field.help_text %}
                 <div style="color: #94a3b8; font-size: 0.875rem; margin-top: 0.25rem;">
-                    {{ field.help_text }}
+                    {{field.help_text}}
                 </div>
                 {% endif %}
             </div>
             {% endfor %}
+
+            <!-- Payment Formset Section -->
+            <div style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1e293b;">Forma de
+                    Pagamento</h3>
+
+                {{formset.management_form}}
+                {% if formset.non_form_errors %}
+                <div class="alert alert-danger" style="margin-bottom: 1rem; color: #ef4444;">
+                    {{ formset.non_form_errors }}
+                </div>
+                {% endif %}
+                <div id="payment-forms-container">
+                    {% for p_form in formset %}
+                    <div class="payment-form-row card"
+                        style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 1rem; margin-bottom: 1rem;">
+                        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem; color: #64748b;">
+                            Pagamento {{forloop.counter}}</h4>
+                        {% for hidden in p_form.hidden_fields %}
+                        {{hidden}}
+                        {% endfor %}
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <!-- Type -->
+                            <div>
+                                <label
+                                    style="display: block; font-size: 0.85rem; font-weight: 500;">{{p_form.payment_type.label}}</label>
+                                {{p_form.payment_type}}
+                                {% if p_form.payment_type.errors %}
+                                <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">
+                                    {{ p_form.payment_type.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <!-- Amount -->
+                            <div>
+                                <label
+                                    style="display: block; font-size: 0.85rem; font-weight: 500;">{{p_form.amount.label}}</label>
+                                {{p_form.amount}}
+                                {% if p_form.amount.errors %}
+                                <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">
+                                    {{ p_form.amount.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Is Down Payment Checkbox -->
+                        <div style="margin-top: 0.5rem;">
+                            <label
+                                style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #0f172a; cursor: pointer;">
+                                {{p_form.is_down_payment}}
+                                É entrada/sinal?
+                            </label>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                            <!-- Date -->
+                            <div>
+                                <label
+                                    style="display: block; font-size: 0.85rem; font-weight: 500;">{{p_form.payment_date.label}}</label>
+                                {{p_form.payment_date}}
+                                {% if p_form.payment_date.errors %}
+                                <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">
+                                    {{ p_form.payment_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <!-- Installments -->
+                            <div class="installments-field">
+                                <label
+                                    style="display: block; font-size: 0.85rem; font-weight: 500;">{{p_form.installments.label}}</label>
+                                {{p_form.installments}}
+                                {% if p_form.installments.errors %}
+                                <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">
+                                    {{ p_form.installments.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <!-- Status -->
+                            <div>
+                                <label
+                                    style="display: block; font-size: 0.85rem; font-weight: 500;">{{p_form.status.label}}</label>
+                                {{p_form.status}}
+                            </div>
+                        </div>
+
+                        <!-- Extra fields (Bank, etc) - Conditional -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                            <div class="bank-field" style="display: none;">
+                                <label
+                                    style="display: block; font-size: 0.85rem; font-weight: 500;">{{p_form.bank.label}}</label>
+                                {{p_form.bank}}
+                            </div>
+                            <div class="consortium-field" style="display: none;">
+                                <label
+                                    style="display: block; font-size: 0.85rem; font-weight: 500;">{{p_form.quota.label}}</label>
+                                {{p_form.quota}}
+                            </div>
+                            <div class="consortium-field" style="display: none;">
+                                <label
+                                    style="display: block; font-size: 0.85rem; font-weight: 500;">{{p_form.administrator.label}}</label>
+                                {{p_form.administrator}}
+                            </div>
+                        </div>
+
+                        {% if p_form.instance.pk %}
+                        <div style="margin-top: 0.5rem;">
+                            <label
+                                style="display: inline-flex; align-items: center; gap: 0.5rem; color: #ef4444; font-size: 0.9rem;">
+                                {{p_form.DELETE}} Deletar este pagamento
+                            </label>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
 
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                 <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Venda</button>
@@ -49,4 +167,91 @@
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        function formatBRL(value) {
+            // Removes everything that is not digit
+            value = value.replace(/\D/g, "");
+
+            if (value === "") return "";
+
+            // Converts to float (cents)
+            value = (parseFloat(value) / 100).toFixed(2);
+
+            // Splits decimal and integer parts
+            let parts = value.split(".");
+
+            // Formats integer part with thousands separator
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+            // Reassembles
+            return parts.join(",");
+        }
+
+        const applyMask = (input) => {
+            input.addEventListener('input', function (e) {
+                // Prevent infinite loop if value didn't change (though input event implies change)
+                let current = e.target.value;
+                let formatted = formatBRL(current);
+
+                if (current !== formatted) {
+                    e.target.value = formatted;
+                }
+            });
+
+            // Initial format logic
+            if (input.value) {
+                input.value = formatBRL(input.value);
+            }
+        };
+
+        // Select all inputs with class money-mask
+        document.querySelectorAll('.money-mask').forEach(input => {
+            applyMask(input);
+        });
+
+        // 2. Conditional Fields Logic
+        const handlePaymentTypeChange = (select) => {
+            const row = select.closest('.payment-form-row');
+            const type = select.value;
+
+            const installmentsField = row.querySelector('.installments-field');
+            const bankField = row.querySelector('.bank-field');
+            const consortiumFields = row.querySelectorAll('.consortium-field');
+
+            // Logic
+            // Installments: Show ONLY for Credit Installment.
+            if (type === 'credit_installment') {
+                installmentsField.style.display = 'block';
+            } else {
+                installmentsField.style.display = 'none';
+            }
+
+            // Bank: Show for Financing, Consortium.
+            if (['financing_bank', 'financing_brand', 'consortium'].includes(type)) {
+                bankField.style.display = 'block';
+            } else {
+                bankField.style.display = 'none';
+            }
+
+            // Consortium specific
+            if (type === 'consortium') {
+                consortiumFields.forEach(el => el.style.display = 'block');
+            } else {
+                consortiumFields.forEach(el => el.style.display = 'none');
+            }
+        };
+
+        // Attach listeners
+        document.querySelectorAll('select[name$="payment_type"]').forEach(select => {
+            select.addEventListener('change', function () {
+                handlePaymentTypeChange(this);
+            });
+            // Initial run
+            handlePaymentTypeChange(select);
+        });
+    });
+</script>
 {% endblock %}

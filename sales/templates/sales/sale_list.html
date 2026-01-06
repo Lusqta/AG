@@ -1,6 +1,8 @@
 {% extends 'sales/base.html' %}
 
+{% load humanize %}
 {% block content %}
+<!-- Template updated -->
 <div class="header">
     <h2 style="font-size: 1.75rem; font-weight: 700;">Histórico de Vendas</h2>
     <div>
@@ -40,7 +42,7 @@
                 style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem; background-color: white;">
                 <option value="">Todos</option>
                 {% for u in users %}
-                <option value="{{ u.id }}" {% if u.id == selected_salesperson %}selected{% endif %}>{{ u.username }}
+                <option value="{{u.id}}" {% if u.id == selected_salesperson %}selected{% endif %}>{{u.username}}
                 </option>
                 {% endfor %}
             </select>
@@ -62,31 +64,111 @@
         <table>
             <thead>
                 <tr>
-                    <th>Data</th>
+                    <th style="width: 120px;">Data Venda</th>
                     <th>Veículo</th>
                     <th>Cliente</th>
-                    <th>Vendedor</th>
                     <th>Preço de Venda</th>
-                    <th style="min-width: 100px;">Ações</th>
+                    <th style="width: 80px;">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 {% for sale in sales %}
-                <tr>
+                <!-- Main Row -->
+                <tr onclick="toggleDetails('{{ sale.pk }}')" style="cursor: pointer; transition: background 0.2s;"
+                    onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                     <td>{{ sale.sale_date|date:"d/m/Y" }}</td>
-                    <td style="font-weight: 500;">{{ sale.vehicle }}</td>
-                    <td><a href="{% url 'customer_detail' sale.customer.pk %}"
-                            style="color: var(--secondary-color); font-weight: 500;">{{ sale.customer }}</a></td>
-                    <td>{{ sale.salesperson.get_full_name|default:sale.salesperson.username }}</td>
-                    <td style="font-weight: 600; color: var(--success-color);">R$ {{ sale.sale_price|floatformat:2 }}
+                    <td style="font-weight: 500;">
+                        {{ sale.vehicle.make }} {{ sale.vehicle.model }}
+                        <i class="fas fa-chevron-down" id="icon-{{ sale.pk }}"
+                            style="float: right; color: #94a3b8; font-size: 0.8rem; margin-top: 4px;"></i>
                     </td>
-                    <td>
+                    <td><a href="{% url 'customer_detail' sale.customer.pk %}" onclick="event.stopPropagation();"
+                            style="color: var(--secondary-color); font-weight: 500;">{{ sale.customer }}</a></td>
+                    <td style="font-weight: 600; color: var(--success-color);">R$ {{ sale.sale_price|intcomma }}</td>
+                    <td onclick="event.stopPropagation();">
                         <a href="{% url 'edit_sale' sale.pk %}" class="btn-icon" title="Editar"
                             style="color: #3b82f6; margin-right: 0.5rem;"><i class="fas fa-edit"></i></a>
                         {% if can_delete %}
                         <a href="{% url 'delete_sale' sale.pk %}" class="btn-icon" title="Excluir"
                             style="color: #ef4444;"><i class="fas fa-trash"></i></a>
                         {% endif %}
+                    </td>
+                </tr>
+
+                <!-- Detail Row -->
+                <tr id="detail-{{ sale.pk }}" style="display: none; background-color: #f8fafc;">
+                    <td colspan="5" style="padding: 0;">
+                        <div
+                            style="padding: 1.5rem; border-bottom: 2px solid #e2e8f0; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+
+                            <!-- Coluna 1: Veículo e Vendedor -->
+                            <div>
+                                <h4
+                                    style="margin: 0 0 1rem 0; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.5rem;">
+                                    <i class="fas fa-car"></i> Detalhes do Veículo & Venda
+                                </h4>
+                                <div
+                                    style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; font-size: 0.9rem;">
+                                    <span style="color: #64748b; font-weight: 500;">Veículo Completo:</span>
+                                    <span style="color: #334155;">{{ sale.vehicle.year }} {{ sale.vehicle.make }}
+                                        {{sale.vehicle.model}} - {{ sale.vehicle.color }}</span>
+
+                                    <span style="color: #64748b; font-weight: 500;">Placa/VIN:</span>
+                                    <span style="color: #334155;">{{ sale.vehicle.license_plate|default:"-" }} <small
+                                            style="color: #94a3b8;">({{ sale.vehicle.vin }})</small></span>
+
+                                    <span style="color: #64748b; font-weight: 500;">KM Atual:</span>
+                                    <span style="color: #334155;">{{ sale.vehicle.mileage|intcomma }} km</span>
+
+                                    <span style="color: #64748b; font-weight: 500;">Vendedor:</span>
+                                    <span
+                                        style="color: #334155;">{{sale.salesperson.get_full_name|default:sale.salesperson.username}}</span>
+                                </div>
+                            </div>
+
+                            <!-- Coluna 2: Pagamento e Obs -->
+                            <div>
+                                <h4
+                                    style="margin: 0 0 1rem 0; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.5rem;">
+                                    <i class="fas fa-wallet"></i> Informações de Pagamento
+                                </h4>
+                                {% with payment=sale.payments.first %}
+                                <div
+                                    style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; font-size: 0.9rem;">
+                                    {% if payment %}
+                                    <span style="color: #64748b; font-weight: 500;">Forma de Pagto:</span>
+                                    <span
+                                        style="color: #334155; font-weight: 600;">{{payment.get_payment_type_display}}</span>
+
+                                    <span style="color: #64748b; font-weight: 500;">Data do Pagto:</span>
+                                    <span style="color: #334155;">{{ payment.payment_date|date:"d/m/Y" }}</span>
+
+                                    {% if payment.installments > 1 %}
+                                    <span style="color: #64748b; font-weight: 500;">Parcelamento:</span>
+                                    <span style="color: #334155;">{{ payment.installments }}x de R$
+                                        {{payment.installment_value|floatformat:2|intcomma}}</span>
+                                    {% endif %}
+
+                                    {% if payment.bank %}
+                                    <span style="color: #64748b; font-weight: 500;">Banco:</span>
+                                    <span style="color: #334155;">{{ payment.bank }}</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <span style="grid-column: 1 / -1; color: #94a3b8; font-style: italic;">Nenhum
+                                        registro de pagamento encontrado.</span>
+                                    {% endif %}
+
+                                    {% if sale.notes %}
+                                    <span
+                                        style="color: #64748b; font-weight: 500; grid-column: 1 / -1; margin-top: 2rem; padding-top: 0.5rem; border-top: 1px dashed #cbd5e1;">Observações:</span>
+                                    <p style="grid-column: 1 / -1; margin: 0; color: #475569; font-style: italic;">"
+                                        {{sale.notes}}"</p>
+                                    {% endif %}
+                                </div>
+                                {% endwith %}
+                            </div>
+
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
@@ -461,6 +543,26 @@
     function toggleAllMonths(checked) {
         const checkboxes = document.querySelectorAll('input[name="month"]');
         checkboxes.forEach(cb => cb.checked = checked);
+    }
+
+    // Toggle Sale Details Row
+    function toggleDetails(saleId) {
+        const detailRow = document.getElementById('detail-' + saleId);
+        const icon = document.getElementById('icon-' + saleId);
+
+        if (detailRow.style.display === 'none') {
+            detailRow.style.display = 'table-row';
+            if (icon) {
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            }
+        } else {
+            detailRow.style.display = 'none';
+            if (icon) {
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
     }
 </script>
 {% endblock %}

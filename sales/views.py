@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+import os
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count, ProtectedError, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -190,51 +191,79 @@ def customer_detail(request, pk):
     customer = get_object_or_404(Customer.objects.prefetch_related('purchases__vehicle'), pk=pk)
     return render(request, 'sales/customer_detail.html', {'customer': customer, 'active_tab': 'customers'})
 
+from .forms import VehicleForm, CustomerForm, SaleForm, UserForm, PaymentFormSet
+
 @login_required
 def create_sale(request):
     if request.method == 'POST':
         form = SaleForm(request.POST)
-        if form.is_valid():
-            sale = form.save(commit=False)
-            if not sale.salesperson_id: 
-                sale.salesperson = request.user 
-            sale.save()
-            messages.success(request, 'Venda registrada com sucesso!')
-            return redirect('dashboard')
+        formset = PaymentFormSet(request.POST)
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                sale = form.save(commit=False)
+                if not sale.salesperson_id: 
+                    sale.salesperson = request.user 
+                sale.save()
+                
+                # Save Formset
+                formset.instance = sale
+                formset.save()
+                
+                messages.success(request, 'Venda registrada com sucesso!')
+                return redirect('dashboard')
     else:
         initial = {'salesperson': request.user}
         vehicle_id = request.GET.get('vehicle')
         if vehicle_id:
             initial['vehicle'] = vehicle_id
+            # Try to pre-fill price
+            try:
+                v = Vehicle.objects.get(pk=vehicle_id)
+                # Format for the mask input
+                initial['sale_price'] = f"{v.price:.2f}".replace('.', ',')
+            except Vehicle.DoesNotExist:
+                pass
+                
         form = SaleForm(initial=initial)
-    return render(request, 'sales/sale_form.html', {'form': form, 'title': 'Registrar Venda', 'active_tab': 'sales'})
+        formset = PaymentFormSet()
+        
+    return render(request, 'sales/sale_form.html', {
+        'form': form, 
+        'formset': formset,
+        'title': 'Registrar Venda', 
+        'active_tab': 'sales'
+    })
 
 @login_required
 def edit_sale(request, pk):
     sale = get_object_or_404(Sale, pk=pk)
-    old_vehicle = sale.vehicle # Capture old vehicle before form save potentially changes it in memory
+    old_vehicle = sale.vehicle 
     
     if request.method == 'POST':
         form = SaleForm(request.POST, instance=sale)
-        if form.is_valid():
+        formset = PaymentFormSet(request.POST, instance=sale)
+        
+        if form.is_valid() and formset.is_valid():
             with transaction.atomic():
                 new_sale = form.save(commit=False)
                 
-                # If vehicle changed, revert the old one
                 if new_sale.vehicle != old_vehicle:
                     old_vehicle.status = 'available'
                     old_vehicle.save()
                     
-                    # The new vehicle status will be set to 'sold' by the Sale.save() method automatically
-                    
                 new_sale.save()
+                formset.save()
+                
                 messages.success(request, 'Venda atualizada com sucesso!')
                 return redirect('sale_list')
     else:
         form = SaleForm(instance=sale)
+        formset = PaymentFormSet(instance=sale)
     
     return render(request, 'sales/sale_form.html', {
         'form': form, 
+        'formset': formset,
         'title': f'Editar Venda #{sale.id}', 
         'active_tab': 'sales'
     })
@@ -403,9 +432,10 @@ def export_sales_report(request):
     month_list = request.GET.getlist('month')
     
     # Filter Data
-    sales_qs = Sale.objects.select_related('vehicle', 'customer', 'salesperson').all().order_by('-sale_date')
+    sales_qs = Sale.objects.select_related('vehicle', 'customer', 'salesperson').prefetch_related('payments').all().order_by('-sale_date')
     
     selected_months_str = "Geral"
+    is_single_month = False
     
     # Filter logic: If 'all' is not present and list is not empty, filter by selected months
     if month_list and 'all' not in month_list:
@@ -427,6 +457,7 @@ def export_sales_report(request):
             # Format filename string
             if len(valid_months) == 1:
                 selected_months_str = valid_months[0]
+                is_single_month = True
             else:
                 selected_months_str = f"Multiplo_{len(valid_months)}Meses"
 
@@ -441,7 +472,11 @@ def export_sales_report(request):
     accent_color = '#10B981'   # Verde Sucesso
     text_color = '#111827'
     
-    # Formatos Básicos
+    # Formatos
+    fmt_title = workbook.add_format({
+        'bold': True, 'font_size': 18, 'color': primary_color, 'align': 'left'
+    })
+    
     fmt_header = workbook.add_format({
         'bold': True,
         'font_color': 'white',
@@ -449,7 +484,7 @@ def export_sales_report(request):
         'align': 'center',
         'valign': 'vcenter',
         'border': 1,
-        'font_size': 12
+        'font_size': 11
     })
     
     fmt_cell = workbook.add_format({
@@ -457,7 +492,7 @@ def export_sales_report(request):
         'align': 'left',
         'valign': 'vcenter',
         'border': 1,
-        'font_size': 11
+        'font_size': 10
     })
     
     fmt_cell_center = workbook.add_format({
@@ -465,7 +500,7 @@ def export_sales_report(request):
         'align': 'center',
         'valign': 'vcenter',
         'border': 1,
-        'font_size': 11
+        'font_size': 10
     })
     
     fmt_date = workbook.add_format({
@@ -474,7 +509,7 @@ def export_sales_report(request):
         'align': 'center',
         'valign': 'vcenter',
         'border': 1,
-        'font_size': 11
+        'font_size': 10
     })
     
     fmt_money = workbook.add_format({
@@ -483,7 +518,7 @@ def export_sales_report(request):
         'align': 'right',
         'valign': 'vcenter',
         'border': 1,
-        'font_size': 11
+        'font_size': 10
     })
 
     fmt_money_bold = workbook.add_format({
@@ -493,97 +528,106 @@ def export_sales_report(request):
         'align': 'right',
         'valign': 'vcenter',
         'border': 1,
-        'font_size': 12,
+        'font_size': 11,
         'bg_color': '#E5E7EB'
     })
 
-    # Decisão do Tipo de Export
-    if export_type == 'simple':
-        # --- PLANILHA SIMPLES ---
-        ws = workbook.add_worksheet('Vendas')
+    # --- PLANILHA DE DADOS (Comum aos dois tipos ou específica para simples) ---
+    sheet_name = 'Vendas' if export_type == 'simple' else 'Detalhamento'
+    ws_list = workbook.add_worksheet(sheet_name)
+    
+    # Branding
+    ws_list.merge_range('A1:D1', 'PRESTIGE AUTO - Relatório de Vendas', fmt_title)
+    ws_list.write('A2', f'Gerado em: {timezone.now().strftime("%d/%m/%Y %H:%M")}', fmt_cell)
+    
+    # Configurações de Tabela
+    headers = ['ID', 'Data', 'Cliente', 'CPF/CNPJ', 'Veículo', 'Marca', 'Modelo', 'Ano', 'Placa/VIN', 'Vendedor', 'Forma(s) Pagto', 'Preço Venda', 'Status']
+    start_row = 3
+    
+    for col, h in enumerate(headers):
+        ws_list.write(start_row, col, h, fmt_header)
         
-        # Cabeçalhos
-        headers = ['ID', 'Data', 'Cliente', 'CPF/CNPJ', 'Veículo', 'Marca', 'Modelo', 'Ano', 'Placa/VIN', 'Vendedor', 'Preço Venda', 'Status']
-        for col, h in enumerate(headers):
-            ws.write(0, col, h, fmt_header)
-            
-        # Dados
-        for row, sale in enumerate(sales_qs, 1):
-            ws.write(row, 0, sale.id, fmt_cell_center)
-            ws.write(row, 1, sale.sale_date, fmt_date)
-            ws.write(row, 2, f"{sale.customer.first_name} {sale.customer.last_name}", fmt_cell)
-            ws.write(row, 3, "N/A", fmt_cell) # Placeholder se não tiver campo
-            ws.write(row, 4, str(sale.vehicle), fmt_cell)
-            ws.write(row, 5, sale.vehicle.make, fmt_cell)
-            ws.write(row, 6, sale.vehicle.model, fmt_cell)
-            ws.write(row, 7, sale.vehicle.year, fmt_cell_center)
-            ws.write(row, 8, sale.vehicle.vin, fmt_cell)
-            ws.write(row, 9, sale.salesperson.get_full_name() or sale.salesperson.username, fmt_cell)
-            ws.write(row, 10, sale.sale_price, fmt_money)
-            ws.write(row, 11, "Concluída", fmt_cell_center)
-
-        # Ajuste de Largura
-        ws.set_column('A:A', 6)
-        ws.set_column('B:B', 12)
-        ws.set_column('C:C', 25)
-        ws.set_column('D:D', 15)
-        ws.set_column('E:E', 25)
-        ws.set_column('F:H', 15)
-        ws.set_column('I:I', 20)
-        ws.set_column('J:J', 20)
-        ws.set_column('K:K', 15)
-        ws.set_column('L:L', 12)
-
-    else:
-        # --- RELATÓRIO COMPLETO (DASHBOARD + LISTA) ---
+    for row, sale in enumerate(sales_qs, start_row + 1):
+        # Process Payment Types
+        payment_types = [p.get_payment_type_display() for p in sale.payments.all()]
+        payment_str = ", ".join(set(payment_types)) if payment_types else "-"
         
-        # 1. Dashboard Sheet
+        ws_list.write(row, 0, sale.id, fmt_cell_center)
+        ws_list.write(row, 1, sale.sale_date, fmt_date)
+        ws_list.write(row, 2, f"{sale.customer.first_name} {sale.customer.last_name}", fmt_cell)
+        ws_list.write(row, 3, "N/A", fmt_cell)
+        ws_list.write(row, 4, str(sale.vehicle), fmt_cell)
+        ws_list.write(row, 5, sale.vehicle.make, fmt_cell)
+        ws_list.write(row, 6, sale.vehicle.model, fmt_cell)
+        ws_list.write(row, 7, sale.vehicle.year, fmt_cell_center)
+        ws_list.write(row, 8, sale.vehicle.vin, fmt_cell)
+        ws_list.write(row, 9, sale.salesperson.get_full_name() or sale.salesperson.username, fmt_cell)
+        ws_list.write(row, 10, payment_str, fmt_cell)
+        ws_list.write(row, 11, sale.sale_price, fmt_money)
+        ws_list.write(row, 12, "Concluída", fmt_cell_center)
+    
+    # Total Row
+    total_rev = sales_qs.aggregate(Sum('sale_price'))['sale_price__sum'] or 0
+    end_row = start_row + len(sales_qs) + 1
+    ws_list.write(end_row, 10, "TOTAL", fmt_header)
+    ws_list.write(end_row, 11, total_rev, fmt_money_bold)
+
+    # Layout Improvements
+    # ws_list.autofilter(start_row, 0, end_row, len(headers)-1) # Removed as per user request
+    ws_list.freeze_panes(start_row + 1, 0)
+    
+    # Column Widths
+    widths = [6, 12, 25, 15, 25, 12, 12, 8, 18, 20, 20, 15, 12]
+    for i, w in enumerate(widths):
+        ws_list.set_column(i, i, w)
+
+
+    if export_type == 'complete':
+        # --- DASHBOARD SHEET ---
         ws_dash = workbook.add_worksheet('Visão Geral')
-        ws_dash.hide_gridlines(2) # Hide gridlines
-        
-        # Title
-        title_fmt = workbook.add_format({'bold': True, 'font_size': 18, 'color': primary_color})
+        ws_dash.hide_gridlines(2)
+        ws_dash.set_tab_color(primary_color)
+        ws_list.set_tab_color('#64748b')
+        ws_dash.activate() # Make it the default tab
+
         subtitle_fmt = workbook.add_format({'font_size': 12, 'italic': True, 'color': '#6B7280'})
         
-        ws_dash.write('B2', 'Relatório Executivo de Vendas', title_fmt)
+        ws_dash.write('B2', 'Relatório Executivo de Vendas', fmt_title)
         ws_dash.write('B3', f'Período: {selected_months_str}', subtitle_fmt)
         
-        # KPIs Logic
-        total_rev = sales_qs.aggregate(Sum('sale_price'))['sale_price__sum'] or 0
+        # KPIs
         count_sales = sales_qs.count()
         avg_ticket = total_rev / count_sales if count_sales > 0 else 0
         
-        # KPI Cards Drawing (Simulation with cells)
         kpi_label_fmt = workbook.add_format({'font_size': 10, 'color': '#6B7280', 'align': 'center', 'border': 1, 'border_color': '#E5E7EB'})
         kpi_value_fmt = workbook.add_format({'font_size': 14, 'bold': True, 'color': text_color, 'align': 'center', 'border': 1, 'border_color': '#E5E7EB'})
         
-        # Card 1: Faturamento
+        # Draw KPIs
         ws_dash.merge_range('B5:C5', 'Faturamento Total', kpi_label_fmt)
         ws_dash.merge_range('B6:C6', f'R$ {total_rev:,.2f}', kpi_value_fmt)
         
-        # Card 2: Vendas
         ws_dash.merge_range('E5:F5', 'Qtd. Vendas', kpi_label_fmt)
         ws_dash.merge_range('E6:F6', count_sales, kpi_value_fmt)
         
-        # Card 3: Ticket Médio
         ws_dash.merge_range('H5:I5', 'Ticket Médio', kpi_label_fmt)
         ws_dash.merge_range('H6:I6', f'R$ {avg_ticket:,.2f}', kpi_value_fmt)
         
-        # Data Preparation for Charts (Hidden Sheet)
+        # --- SMART CHART ---
         ws_data = workbook.add_worksheet('Data_Source')
         ws_data.hide()
         
-        # Chart Data: Daily/Monthly Sales (depending on filter)
-        # Se for 1 mês específico, agrupa por dia. Se for geral ou múltiplos, por mês.
-        if len(month_list) == 1 and 'all' not in month_list:
-            trunc_func = TruncMonth('sale_date')
-            date_format = '%b/%Y'
-            chart_xlabel = 'Mês'
-        else:
+        # Logic: If Single Month -> Daily View. If Multiple/All -> Monthly View.
+        if is_single_month:
             from django.db.models.functions import TruncDay
             trunc_func = TruncDay('sale_date')
             date_format = '%d/%m'
             chart_xlabel = 'Dia'
+            chart_title = f'Evolução Diária ({selected_months_str})'
+        else:
+            trunc_func = TruncMonth('sale_date')
+            date_format = '%b/%Y'
+            chart_xlabel = 'Mês'
+            chart_title = 'Evolução Mensal (Faturamento)'
 
         timeline_data = sales_qs.annotate(period=trunc_func).values('period').annotate(total=Sum('sale_price')).order_by('period')
         
@@ -599,44 +643,29 @@ def export_sales_report(request):
         # Create Chart
         chart = workbook.add_chart({'type': 'column'})
         chart.add_series({
-            'name': 'Vendas',
+            'name': 'Faturamento',
             'categories': ['Data_Source', 1, 0, max(1, row_idx-1), 0],
             'values':     ['Data_Source', 1, 1, max(1, row_idx-1), 1],
             'fill':       {'color': primary_color},
+            # Improve accessibility
+            'data_labels': {'value': False} 
         })
-        chart.set_title({'name': 'Evolução de Vendas'})
-        chart.set_x_axis({'name': chart_xlabel})
-        chart.set_y_axis({'name': 'Faturamento (R$)'})
+        
+        chart.set_title({'name': chart_title})
+        chart.set_x_axis({
+            'name': chart_xlabel,
+            'name_font': {'size': 10, 'bold': False},
+        })
+        # Currency Format on Axis
+        chart.set_y_axis({
+            'name': 'Faturamento (R$)',
+            'num_format': 'R$ #,##0',
+            'major_gridlines': {'visible': True, 'line': {'color': '#f1f5f9'}}
+        })
         chart.set_legend({'position': 'none'})
+        chart.set_size({'width': 800, 'height': 400})
         
-        ws_dash.insert_chart('B9', chart, {'x_scale': 1.5, 'y_scale': 1.2})
-        
-        # 2. Detailed List Sheet
-        ws_list = workbook.add_worksheet('Detalhamento')
-        
-        headers = ['Data', 'Vendedor', 'Cliente', 'Veículo', 'Marca', 'Modelo', 'Valor']
-        for col, h in enumerate(headers):
-            ws_list.write(0, col, h, fmt_header)
-            
-        for row, sale in enumerate(sales_qs, 1):
-            ws_list.write(row, 0, sale.sale_date, fmt_date)
-            ws_list.write(row, 1, sale.salesperson.first_name or sale.salesperson.username, fmt_cell)
-            ws_list.write(row, 2, f"{sale.customer.first_name} {sale.customer.last_name}", fmt_cell)
-            ws_list.write(row, 3, str(sale.vehicle), fmt_cell)
-            ws_list.write(row, 4, sale.vehicle.make, fmt_cell)
-            ws_list.write(row, 5, sale.vehicle.model, fmt_cell)
-            ws_list.write(row, 6, sale.sale_price, fmt_money)
-            
-        # Total Row
-        total_row = len(sales_qs) + 1
-        ws_list.write(total_row, 5, "TOTAL", fmt_header)
-        ws_list.write(total_row, 6, total_rev, fmt_money_bold)
-
-        ws_list.set_column('A:A', 12)
-        ws_list.set_column('B:C', 20)
-        ws_list.set_column('D:E', 25)
-        ws_list.set_column('F:F', 15)
-        ws_list.set_column('G:G', 15)
+        ws_dash.insert_chart('B9', chart)
 
     workbook.close()
     output.seek(0)
@@ -648,3 +677,53 @@ def export_sales_report(request):
     )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+# --- Database Backup Logic ---
+
+from django.core.management import call_command
+import sys
+
+from io import StringIO
+
+@login_required
+@user_passes_test(is_superuser)
+def export_database(request):
+    """Exports the database as a JSON file."""
+    output = StringIO()
+    # Using 'dumpdata' command
+    # Exclude contenttypes and auth.permission to avoid conflicts on import if needed, 
+    # but for full backup usually we want everything or specifically our app data.
+    # Let's dump everything for simplicity of "clone" behavior.
+    call_command('dumpdata', stdout=output, format='json', indent=2)
+    
+    response_content = output.getvalue()
+    response = HttpResponse(response_content, content_type='application/json')
+    response['Content-Disposition'] = f'attachment; filename="backup_db_{timezone.now().strftime("%Y-%m-%d_%H%M")}.json"'
+    return response
+
+@login_required
+@user_passes_test(is_superuser)
+def import_database(request):
+    """Imports a JSON database backup."""
+    if request.method == 'POST' and request.FILES.get('backup_file'):
+        backup_file = request.FILES['backup_file']
+        
+        # Save temp file
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp:
+            for chunk in backup_file.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+            
+        try:
+            # Run loaddata
+            call_command('loaddata', tmp_path)
+            messages.success(request, "Banco de dados restaurado com sucesso!")
+        except Exception as e:
+            messages.error(request, f"Erro ao importar banco de dados: {str(e)}")
+        finally:
+            os.remove(tmp_path)
+            
+        return redirect('dashboard')
+    
+    return redirect('dashboard')

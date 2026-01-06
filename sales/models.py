@@ -39,6 +39,7 @@ class Vehicle(models.Model):
     year = models.PositiveIntegerField("Ano")
     price = models.DecimalField("Preço", max_digits=10, decimal_places=2)
     vin = models.CharField("Chassi (VIN)", max_length=17, unique=True)
+    license_plate = models.CharField("Placa", max_length=7, blank=True, null=True, unique=True)
     mileage = models.PositiveIntegerField("Quilometragem")
     color = models.CharField("Cor", max_length=30)
     status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='available')
@@ -52,7 +53,7 @@ class Vehicle(models.Model):
         verbose_name_plural = "Veículos"
 
     def __str__(self):
-        return f"{self.year} {self.make} {self.model}"
+        return f"{self.year} {self.make} {self.model} - {self.license_plate}" if self.license_plate else f"{self.year} {self.make} {self.model}"
 
 class Sale(models.Model):
     vehicle = models.OneToOneField(Vehicle, verbose_name="Veículo", on_delete=models.PROTECT, related_name='sale')
@@ -79,3 +80,44 @@ class Sale(models.Model):
 
     def __str__(self):
         return f"Venda de {self.vehicle} para {self.customer}"
+
+class Payment(models.Model):
+    PAYMENT_TYPE_CHOICES = [
+        ('debit', 'Débito'),
+        ('credit_spot', 'Crédito'),
+        ('credit_installment', 'Crédito Parcelado'),
+        ('pix', 'PIX'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pendente'),
+        ('confirmed', 'Confirmado'),
+        ('cancelled', 'Cancelado'),
+    ]
+
+    sale = models.ForeignKey(Sale, verbose_name="Venda", on_delete=models.CASCADE, related_name='payments')
+    payment_type = models.CharField("Forma de Pagamento", max_length=20, choices=PAYMENT_TYPE_CHOICES)
+    amount = models.DecimalField("Valor", max_digits=12, decimal_places=2)
+    payment_date = models.DateField("Data do Pagamento", default=timezone.now)
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_down_payment = models.BooleanField("É Entrada?", default=False, help_text="Marque se este pagamento for a entrada/sinal")
+    
+    # Specific fields
+    bank = models.CharField("Banco/Instituição", max_length=50, blank=True, help_text="Para financiamentos e consórcios")
+    installments = models.PositiveIntegerField("Parcelas", default=1, help_text="Qtd. parcelas")
+    quota = models.CharField("Cota/Grupo", max_length=50, blank=True, help_text="Para Consórcios")
+    administrator = models.CharField("Administradora", max_length=50, blank=True, help_text="Para Consórcios")
+    notes = models.TextField("Observações", blank=True)
+
+    @property
+    def installment_value(self):
+        if self.installments and self.installments > 0:
+            return self.amount / self.installments
+        return self.amount
+
+    class Meta:
+        verbose_name = "Pagamento"
+        verbose_name_plural = "Pagamentos"
+
+    def __str__(self):
+        return f"{self.get_payment_type_display()} - R$ {self.amount}"

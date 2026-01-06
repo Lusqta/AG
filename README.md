@@ -11,10 +11,10 @@ O **Dealership CRM** é uma solução completa para gestão de concessionárias,
 
 ## ✨ Funcionalidades Comprovadas
 
-### 📊 Painel de Controle (Dashboard)
 - **KPIs em Tempo Real:** Faturamento, Veículos Vendidos, Veículos Disponíveis e Leads.
-- **Gráficos Interativos:** Evolução de Vendas (Mensal), Vendas por Marca e Top Vendedores.
+- **Gráficos Interativos:** Evolução de Vendas (Diária/Mensal), Vendas por Marca e Top Vendedores.
 - **Tabela Recente:** Visualização rápida das últimas 5 vendas.
+- **Backup Rápido:** Widget flutuante para exportação e restauração do banco de dados (Json).
 
 ### 🚘 Gestão de Veículos (Inventário)
 - **Cadastro Completo:** Marca, modelo, ano, preço, VIN, cor, quilometragem e descrição.
@@ -32,6 +32,7 @@ O **Dealership CRM** é uma solução completa para gestão de concessionárias,
 
 ### 💰 Gestão de Vendas
 - **Fluxo Automatizado:** Registrar uma venda automaticamente marca o veículo como "Vendido" e o cliente como "Comprou".
+- **Pagamentos Flexíveis:** Suporte para Crédito, Débito e PIX, com cálculo de parcelas.
 - **Histórico:** Lista completa com filtros por Data, Vendedor e Pesquisa textual.
 - **Edição Inteligente:** Se você alterar o veículo de uma venda, o sistema reverte o status do veículo anterior para "Disponível" automaticamente.
 - **Cancelamento:** Apenas **Gerentes** podem excluir vendas (o veículo volta automaticamente para o estoque).

@@ -1,6 +1,7 @@
 {% extends 'sales/base.html' %}
 {% load static %}
 
+{% load humanize %}
 {% block content %}
 <div class="header">
     <h2 style="font-size: 1.75rem; font-weight: 700;">Visão Geral</h2>
@@ -15,7 +16,7 @@
 <!-- Stats Grid -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-value">R$ {{ total_sales|floatformat:2 }}</div>
+        <div class="stat-value">R$ {{ total_sales|floatformat:2|intcomma }}</div>
         <div class="stat-label">Receita Total</div>
     </div>
     <div class="stat-card">
@@ -78,7 +79,7 @@
                 <tr>
                     <td>{{ sale.vehicle }}</td>
                     <td>{{ sale.customer }}</td>
-                    <td style="font-weight: 600;">R$ {{ sale.sale_price }}</td>
+                    <td style="font-weight: 600;">R$ {{ sale.sale_price|intcomma }}</td>
                     <td>{{ sale.sale_date|date:"d/m/Y" }}</td>
                     <td>{{ sale.salesperson.get_full_name|default:sale.salesperson.username }}</td>
                 </tr>
@@ -90,6 +91,102 @@
             </tbody>
         </table>
     </div>
+</div>
+
+
+<!-- Backup Floating Widget -->
+{% if user.is_superuser %}
+<div class="backup-widget">
+    <div class="backup-controls">
+        <!-- Export -->
+        <a href="{% url 'export_database' %}" class="backup-btn export" title="Fazer Backup">
+            <i class="fas fa-cloud-download-alt"></i>
+        </a>
+
+        <!-- Import -->
+        <form action="{% url 'import_database' %}" method="post" enctype="multipart/form-data" id="restoreForm">
+            {% csrf_token %}
+            <input type="file" name="backup_file" id="backupInput" accept=".json" style="display: none;"
+                onchange="confirmRestore(this)">
+            <button type="button" class="backup-btn import" title="Restaurar Backup"
+                onclick="document.getElementById('backupInput').click()">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    .backup-widget {
+        width: fit-content;
+        margin-left: auto;
+        margin-top: 3rem;
+        margin-bottom: 1rem;
+
+        background: white;
+        padding: 0.5rem;
+        border-radius: 50px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e2e8f0;
+        transition: transform 0.2s;
+    }
+
+    .backup-widget:hover {
+        transform: translateY(-2px);
+    }
+
+    .backup-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .backup-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .backup-btn.export {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .backup-btn.export:hover {
+        background: #e2e8f0;
+        color: #3b82f6;
+    }
+
+    .backup-btn.import {
+        background: #fff7ed;
+        color: #f59e0b;
+    }
+
+    .backup-btn.import:hover {
+        background: #ffedd5;
+        color: #d97706;
+    }
+</style>
+
+<script>
+    function confirmRestore(input) {
+        if (input.files && input.files[0]) {
+            if (confirm('ATENÇÃO: Isso irá sobrescrever todo o banco de dados atual com o arquivo enviado. Deseja continuar?')) {
+                document.getElementById('restoreForm').submit();
+            } else {
+                input.value = ''; // Reset input
+            }
+        }
+    }
+</script>
+{% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -259,8 +356,8 @@
                         <div class="option-card">
                             <div class="icon-box"><i class="fas fa-chart-pie"></i></div>
                             <div class="text-content">
-                                <span>Completo (Executivo)</span>
-                                <small>Dashboard, Gráficos e Dados</small>
+                                <span>Gráficos</span>
+                                <small>Dashboard + Dados Completos</small>
                             </div>
                         </div>
                     </label>
@@ -269,8 +366,8 @@
                         <div class="option-card">
                             <div class="icon-box"><i class="fas fa-table"></i></div>
                             <div class="text-content">
-                                <span>Simples (Planilha)</span>
-                                <small>Apenas Tabela de Dados</small>
+                                <span>Planilhas</span>
+                                <small>Lista Simples de Dados</small>
                             </div>
                         </div>
                     </label>

@@ -17,6 +17,10 @@ urlpatterns = [
     path('sales/<int:pk>/delete/', views.delete_sale, name='delete_sale'),
     path('sales/export/', views.export_sales_report, name='export_sales_report'),
     
+    # Database Backup
+    path('backup/export/', views.export_database, name='export_database'),
+    path('backup/import/', views.import_database, name='import_database'),
+    
     # User Management
     path('users/', views.user_list, name='user_list'),
     path('users/add/', views.user_add, name='user_add'),
