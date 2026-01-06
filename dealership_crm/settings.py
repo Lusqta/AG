@@ -26,7 +26,6 @@ INSTALLED_APPS = [
 # Middleware (WhiteNoise deve ser o segundo da lista)
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -73,11 +72,9 @@ THOUSAND_SEPARATOR = '.'
 
 # Arquivos Estáticos (Configuração para Produção)
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-# Armazenamento otimizado para WhiteNoise
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Mídia
 
 # Mídia
 MEDIA_URL = '/media/'
