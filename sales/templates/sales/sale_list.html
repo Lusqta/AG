@@ -39,7 +39,7 @@
             <label
                 style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #64748b;">Vendedor</label>
             <select name="salesperson"
-                style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem; background-color: white;">
+                style="width: 100%; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.9rem;">
                 <option value="">Todos</option>
                 {% for u in users %}
                 <option value="{{u.id}}" {% if u.id == selected_salesperson %}selected{% endif %}>{{u.username}}

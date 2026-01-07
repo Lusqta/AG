@@ -43,8 +43,7 @@
 
             <!-- Payment Formset Section -->
             <div style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
-                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1e293b;">Forma de
-                    Pagamento</h3>
+                <h3 class="section-title">Forma de Pagamento</h3>
 
                 {{formset.management_form}}
                 {% if formset.non_form_errors %}
@@ -54,8 +53,7 @@
                 {% endif %}
                 <div id="payment-forms-container">
                     {% for p_form in formset %}
-                    <div class="payment-form-row card"
-                        style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 1rem; margin-bottom: 1rem;">
+                    <div class="payment-form-row card payment-form-card">
                         <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem; color: #64748b;">
                             Pagamento {{forloop.counter}}</h4>
                         {% for hidden in p_form.hidden_fields %}
@@ -87,14 +85,7 @@
                             </div>
                         </div>
 
-                        <!-- Is Down Payment Checkbox -->
-                        <div style="margin-top: 0.5rem;">
-                            <label
-                                style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #0f172a; cursor: pointer;">
-                                {{p_form.is_down_payment}}
-                                É entrada/sinal?
-                            </label>
-                        </div>
+
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
                             <!-- Date -->

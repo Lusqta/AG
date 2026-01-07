@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prestige Auto CRM</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=7">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
@@ -62,6 +62,12 @@
                     <div style="font-size: 0.75rem; color: var(--accent-color);">{{ user.groups.all.0.name }}</div>
                     {% endif %}
                 </div>
+                <!-- Dark Mode Toggle -->
+                <button type="button" id="darkModeToggle"
+                    style="width: 100%; text-align: left; background: none; border: none; color: #94a3b8; font-size: 0.95rem; font-weight: 500; cursor: pointer; padding: 0.5rem; display: flex; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-moon"></i> Modo Escuro
+                </button>
+
                 <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}
                     <button type="submit"
@@ -89,6 +95,35 @@
             {% endblock %}
         </main>
     </div>
+
+    <script>
+        const toggleBtn = document.getElementById('darkModeToggle');
+        const html = document.documentElement;
+
+        // Function to update button appearance
+        function updateButton(isDark) {
+            if (isDark) {
+                toggleBtn.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
+            } else {
+                toggleBtn.innerHTML = '<i class="fas fa-moon"></i> Modo Escuro';
+            }
+        }
+
+        // Check Local Storage on Load
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            updateButton(true);
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+
+            // Save preference and update button
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateButton(isDark);
+        });
+    </script>
 </body>
 
 </html>
